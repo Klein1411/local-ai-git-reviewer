@@ -1,15 +1,32 @@
 import typer
 import subprocess
+import sys
+import os
+import subprocess
+import sys
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 from typing import Optional
 
+# Ép kiểu UTF-8 cho console Windows để chống lỗi UnicodeEncodeError khi in tiếng Việt
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from .git_utils import get_staged_diff
 from .llm_client import ping_ollama, check_model_exists, generate_json, DEFAULT_MODEL
 from .prompts import COMMIT_JSON_SCHEMA, REVIEW_JSON_SCHEMA
 
-app = typer.Typer(help="Local AI Git Reviewer & Commit Generator")
+app = typer.Typer(
+    help=(
+        "Local AI Git Reviewer & Commit Generator.\n\n"
+        "A privacy-first CLI tool that uses Local LLMs (Ollama) to review your staged git changes "
+        "and generate Conventional Commits automatically.\n\n"
+        "Environment Variables:\n"
+        "  GIT_AI_LANG: Set to 'en' or 'vi' to change the AI output language (Default: 'vi')."
+    )
+)
 console = Console()
 
 def verify_environment(model: str = DEFAULT_MODEL):
@@ -25,18 +42,37 @@ def verify_environment(model: str = DEFAULT_MODEL):
         raise typer.Exit(code=1)
 
 @app.command()
-def commit(model: str = typer.Option(DEFAULT_MODEL, help="Tên model Ollama để sử dụng")):
-    """Sinh ra commit message tự động từ nội dung các file đang staged."""
+def commit(
+    model: str = typer.Option(DEFAULT_MODEL, help="The Ollama model to use for generation")
+):
+    """
+    Generate a Conventional Commit message automatically from staged files.
+    
+    This command reads `git diff --cached`, ignores lock files and binaries, 
+    and asks the AI to propose a commit message. You can accept it interactively [Y/n].
+    
+    Tip: Run `$env:GIT_AI_LANG="en"` in PowerShell to force English output.
+    """
     verify_environment(model)
     
     diff = get_staged_diff()
     if not diff:
-        console.print("[yellow]Không có thay đổi nào đang được staged (Vui lòng chạy `git add`).[/yellow]")
-        return
+        unstaged = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, encoding='utf-8', errors='replace').stdout.strip()
+        if unstaged:
+            if Confirm.ask("[yellow]Không có file nào đang được staged.[/yellow] Bạn có muốn tự động chạy `git add .` không?"):
+                subprocess.run(["git", "add", "."], check=True)
+                diff = get_staged_diff()
+            else:
+                return
+        else:
+            console.print("[yellow]Không có thay đổi code nào trong project để commit.[/yellow]")
+            return
         
     with console.status(f"[bold green]Đang nhờ {model} viết commit message...[/bold green]"):
         try:
-            result = generate_json(COMMIT_JSON_SCHEMA, f"Nội dung Git diff:\n{diff}", model=model)
+            lang = os.environ.get("GIT_AI_LANG", "vi")
+            user_prompt = f"Ngôn ngữ bắt buộc (Language): {'Tiếng Việt' if lang.lower() == 'vi' else 'English'}.\n\nNội dung Git diff:\n{diff}"
+            result = generate_json(COMMIT_JSON_SCHEMA, user_prompt, model=model)
         except Exception as e:
             console.print(f"[bold red]Lỗi khi gọi AI:[/bold red] {str(e)}")
             return
@@ -63,18 +99,37 @@ def commit(model: str = typer.Option(DEFAULT_MODEL, help="Tên model Ollama đ�
         console.print("[yellow]Đã hủy commit. Bạn có thể chỉnh sửa code hoặc chạy lại lệnh.[/yellow]")
 
 @app.command()
-def review(model: str = typer.Option(DEFAULT_MODEL, help="Tên model Ollama để sử dụng")):
-    """Đánh giá code (Review) các file đang staged."""
+def review(
+    model: str = typer.Option(DEFAULT_MODEL, help="The Ollama model to use for generation")
+):
+    """
+    Analyze staged files and provide a Code Review.
+    
+    The AI will scan for bugs, code smells, and logic errors, outputting a severity 
+    rating (HIGH/MEDIUM/LOW) for each issue.
+    
+    Tip: Run `$env:GIT_AI_LANG="en"` in PowerShell to force English output.
+    """
     verify_environment(model)
     
     diff = get_staged_diff()
     if not diff:
-        console.print("[yellow]Không có thay đổi nào đang được staged để review.[/yellow]")
-        return
+        unstaged = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, encoding='utf-8', errors='replace').stdout.strip()
+        if unstaged:
+            if Confirm.ask("[yellow]Không có file nào đang được staged.[/yellow] Bạn có muốn tự động chạy `git add .` không?"):
+                subprocess.run(["git", "add", "."], check=True)
+                diff = get_staged_diff()
+            else:
+                return
+        else:
+            console.print("[yellow]Không có thay đổi code nào trong project để review.[/yellow]")
+            return
         
     with console.status(f"[bold green]Đang nhờ {model} review code...[/bold green]"):
         try:
-            result = generate_json(REVIEW_JSON_SCHEMA, f"Nội dung Git diff:\n{diff}", model=model)
+            lang = os.environ.get("GIT_AI_LANG", "vi")
+            user_prompt = f"Ngôn ngữ bắt buộc (Language): {'Tiếng Việt' if lang.lower() == 'vi' else 'English'}.\n\nNội dung Git diff:\n{diff}"
+            result = generate_json(REVIEW_JSON_SCHEMA, user_prompt, model=model)
         except Exception as e:
             console.print(f"[bold red]Lỗi khi gọi AI:[/bold red] {str(e)}")
             return

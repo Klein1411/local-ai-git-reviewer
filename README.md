@@ -1,58 +1,88 @@
-# git-ai (Local AI Git Reviewer)
+# git-ai
 
-Một CLI tool mạnh mẽ bằng Python giúp tự động hóa quá trình review code và viết commit message chuẩn Conventional Commits. Công cụ này chạy 100% offline sử dụng Local LLM thông qua Ollama, bảo vệ hoàn toàn quyền riêng tư cho source code của bạn.
+A privacy-first, local CLI tool that uses Ollama to automatically review your staged git changes and generate Conventional Commits. It runs 100% offline, ensuring your source code never leaves your machine.
 
-Được tối ưu hóa cho model **Qwen 2.5:3b** chạy mượt mà trên các máy có 4GB VRAM.
+Optimized for small, efficient models like `qwen2.5:3b` to run smoothly on lower-end hardware (e.g., 4GB VRAM).
 
-## Tính năng nổi bật
+## Features
 
-- 🚀 **Nhanh & Riêng tư:** Chạy hoàn toàn trên máy local, không cần mạng, không lo rò rỉ code.
-- 🧹 **Smart Ignore:** Tự động loại bỏ các file lock (`.lock`), binary (`.png`, `.exe`...) để tiết kiệm Context Window.
-- 📜 **Structured JSON:** Ép model trả về định dạng JSON chặt chẽ, loại bỏ hoàn toàn các câu chat nhảm của AI.
-- 💬 **Interactive Commit:** Review commit message trước, nhấn `Y` để tự động chạy `git commit`.
-- 🔍 **Ping & Auto-Pull:** Tự động kiểm tra trạng thái của Ollama và gợi ý tải model nếu chưa có.
+- **Offline First:** Operates entirely locally. No API keys required, no data sent to external servers.
+- **Smart Ignore:** Automatically filters out lock files (`.lock`) and binaries to optimize context windows and prevent token waste.
+- **Structured Output:** Enforces strict JSON responses from the LLM, eliminating conversational filler.
+- **Interactive Commits:** Proposes a conventional commit message and allows you to apply it interactively.
+- **Bilingual Support:** Outputs commit messages and reviews in English or Vietnamese via environment variables.
 
-## Hướng dẫn Cài đặt
+## Installation
 
-### Bước 1: Setup Môi trường Ollama
-1. Chạy script `install_env.ps1` (Right-click -> Run with PowerShell) để thiết lập biến môi trường `OLLAMA_MODELS` trỏ sang ổ D (tiết kiệm ổ C).
-2. Tải và cài đặt Ollama từ [ollama.com](https://ollama.com/download/OllamaSetup.exe).
-3. Mở Terminal mới, chạy lệnh tải model:
-   ```bash
-   ollama pull qwen2.5:3b
-   ```
+### 1. Configure Ollama Environment
 
-### Bước 2: Cài đặt git-ai CLI
-Cài đặt project dưới dạng một CLI tool thực thụ trên máy:
+If you want to store Ollama models on a custom drive (e.g., D: drive) to save C: drive space, run the provided PowerShell script before installing Ollama:
+
+```powershell
+.\install_env.ps1
+```
+
+Download and install Ollama from [ollama.com](https://ollama.com/). Then, pull the recommended model:
 
 ```bash
-cd D:\local-ai-git-reviewer
-# Cài đặt công cụ pipx (nếu máy tính của bạn chưa có)
-pip install pipx
-pipx ensurepath
+ollama pull qwen2.5:3b
+```
 
-# Dùng pipx để cài đặt tool (pipx sẽ tự động tạo một venv an toàn và ngầm định)
+### 2. Install the CLI
+
+It is highly recommended to install `git-ai` globally using `pipx` to isolate its dependencies.
+
+```bash
+cd local-ai-git-reviewer
 pipx install -e .
 ```
 
-## Hướng dẫn Sử dụng
+## Usage
 
-Đầu tiên, bạn cần `git add` các file muốn commit.
+Stage your changes first:
 
-**1. Tự động viết Commit Message:**
+```bash
+git add <files>
+```
+
+### Generate a Commit Message
+
 ```bash
 git-ai commit
 ```
-Công cụ sẽ đọc diff, đề xuất một commit message tuyệt đẹp, và hỏi bạn có muốn commit luôn không `[Y/n]`.
 
-**2. Review Code trước khi Commit:**
+The CLI will read your `git diff --cached`, propose a well-formatted conventional commit message, and prompt you for confirmation before executing `git commit`.
+
+### Review Code
+
 ```bash
 git-ai review
 ```
-Công cụ sẽ quét lỗi tiềm ẩn, code smell, và hiển thị mức độ nghiêm trọng (High/Medium/Low) rất trực quan.
 
-## Tùy biến Model
-Nếu bạn có máy tính mạnh hơn (ví dụ: 8GB VRAM) và muốn đổi sang model `qwen2.5:7b` hoặc `llama3.1`, chỉ cần thêm flag `--model`:
+The CLI will analyze your staged code for potential bugs, logic errors, and code smells, categorized by severity (HIGH, MEDIUM, LOW).
+
+### Configuration
+
+#### Language Options
+
+You can enforce the output language (English or Vietnamese) by setting the `GIT_AI_LANG` environment variable.
+
+**PowerShell:**
+```powershell
+$env:GIT_AI_LANG="en"
+git-ai commit
+```
+
+**Bash/Zsh:**
 ```bash
-git-ai commit --model qwen2.5:7b
+export GIT_AI_LANG="en"
+git-ai commit
+```
+
+#### Custom Models
+
+To use a different local model (e.g., `llama3.1`), pass the `--model` flag:
+
+```bash
+git-ai review --model llama3.1
 ```

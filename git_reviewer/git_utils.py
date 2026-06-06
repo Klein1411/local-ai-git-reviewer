@@ -24,7 +24,9 @@ def get_staged_files() -> List[str]:
             ["git", "diff", "--cached", "--name-only"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            encoding='utf-8',
+            errors='replace'
         )
         files = result.stdout.strip().split("\n")
         return [f for f in files if f]
@@ -61,7 +63,9 @@ def get_staged_diff() -> str:
             cmd,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            encoding='utf-8',
+            errors='replace'
         )
         return result.stdout
     except subprocess.CalledProcessError:
