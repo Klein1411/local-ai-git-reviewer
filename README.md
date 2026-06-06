@@ -27,9 +27,12 @@ Cài đặt project dưới dạng một CLI tool thực thụ trên máy:
 
 ```bash
 cd D:\local-ai-git-reviewer
-pip install -e .
-# hoặc nếu dùng poetry
-poetry install
+# Cài đặt công cụ pipx (nếu máy tính của bạn chưa có)
+pip install pipx
+pipx ensurepath
+
+# Dùng pipx để cài đặt tool (pipx sẽ tự động tạo một venv an toàn và ngầm định)
+pipx install -e .
 ```
 
 ## Hướng dẫn Sử dụng

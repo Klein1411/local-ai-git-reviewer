@@ -28,9 +28,8 @@ Write-Host "--------------------------------" -ForegroundColor Cyan
 # 3. Huong dan cai dat project
 Write-Host "`n--- HUONG DAN CAI DAT GIT-AI ---" -ForegroundColor Cyan
 Write-Host "1. Chuyen vao thu muc du an: cd D:\local-ai-git-reviewer"
-Write-Host "2. Cai dat cac goi phu thuoc bang Pip hoac Poetry:"
-Write-Host "   pip install -e ."
-Write-Host "   hoac"
-Write-Host "   poetry install"
+Write-Host "2. Cai dat tool an toan bang Pipx (chong xung dot):"
+Write-Host "   pip install pipx"
+Write-Host "   pipx install -e ."
 Write-Host "3. Su dung lenh 'git-ai' de chay cong cu." -ForegroundColor Green
 Write-Host "Hoan tat thiet lap co ban!" -ForegroundColor Magenta
