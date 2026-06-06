@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Local AI Git Reviewer and Commit Generator using Ollama"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-packages = [{include = "git_reviewer"}]
+packages = [{include = "git_reviewer", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
